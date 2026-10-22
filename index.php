@@ -21,16 +21,19 @@ include_once "./function.php";
                                 if (isset($_POST["upload"])) {
                                     $file = $_FILES["fileUpload"];
 
-                                    $file_name = time() . "_" . rand() . "_" . $file["name"];
-                                    $file_tmp_name = $file["tmp_name"];
-                                    $file_type = $file["type"];
-                                    $file_size = $file["size"];
-
-                                    if ($file_type=='image/jpeg' || $file_type=='image/jpg' || $file_type=='image/png' || $file_type=='image/gif') {
-                                        move_uploaded_file($file_tmp_name, "image/" . $file_name);
-                                    }
-                                    else{
-                                        $msg="<p class=\"alert alert-danger\">Invalid Image Format</p>";
+                                    $allowed = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_GIF => 'gif'];
+                                    $validUpload = isset($file['error']) && $file['error'] === UPLOAD_ERR_OK
+                                        && is_uploaded_file($file['tmp_name'])
+                                        && $file['size'] > 0 && $file['size'] <= 5 * 1024 * 1024;
+                                    $imageType = $validUpload ? @exif_imagetype($file['tmp_name']) : false;
+                                    if ($validUpload && isset($allowed[$imageType])) {
+                                        $file_name = bin2hex(random_bytes(16)) . '.' . $allowed[$imageType];
+                                        $destination = __DIR__ . '/image/' . $file_name;
+                                        if (!is_dir(__DIR__ . '/image') || !move_uploaded_file($file['tmp_name'], $destination)) {
+                                            $msg = '<p class="alert alert-danger">Upload failed.</p>';
+                                        }
+                                    } else {
+                                        $msg = '<p class="alert alert-danger">Invalid image or file exceeds 5 MB.</p>';
                                     }
 
                                     
